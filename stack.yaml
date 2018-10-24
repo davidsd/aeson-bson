@@ -1,0 +1,9 @@
+flags: {}
+packages:
+- '.'
+- location:
+    git: https://github.com/futurice/haskell-base64-bytestring-type
+    commit: 2ab53055021b7c8a9cad3e5ee05749412cfb1f90
+  extra-dep: true
+extra-deps: [QuickCheck-2.12.6.1]
+resolver: lts-11.13

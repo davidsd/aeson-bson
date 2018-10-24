@@ -20,7 +20,7 @@ extra-source-files:
 
 source-repository head
   type:      git
-  location:  git://github.com/adinapoli/aeson-bson.git
+  location:  git://github.com/davidsd/aeson-bson.git
 
 Library
   hs-source-dirs: src
@@ -29,16 +29,18 @@ Library
     CPP-Options: -DNO_PRELUDE_CATCH
 
   Build-Depends:
-    array -any,
-    aeson >= 0.6 && < 0.8,
-    attoparsec -any,
-    base >= 4 && < 5,
-    bson >= 0.2.1 && < 3,
-    bytestring >= 0.10 && < 0.13,
-    containers -any,
-    text >= 0.11.1.0,
-    unordered-containers >= 0.1.3.0,
-    vector -any
+    array,
+    aeson,
+    attoparsec,
+    base,
+    bson,
+    bytestring,
+    containers,
+    text,
+    unordered-containers,
+    vector,
+    scientific,
+    base64-bytestring-type
   Exposed-Modules:
     Data.Aeson.Bson
   Ghc-Options: -Wall -fno-warn-orphans

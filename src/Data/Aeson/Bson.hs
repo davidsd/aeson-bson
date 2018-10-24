@@ -7,8 +7,9 @@ module Data.Aeson.Bson (
 ) where
 
 import Data.Bson as BSON
+import Data.ByteString.Base64.Type (makeByteString64)
 import Data.Aeson.Types as AESON
-import Data.Attoparsec.Number as Atto
+import qualified Data.Scientific as Scientific
 import Data.Text as T hiding (map)
 import Data.HashMap.Strict as Map (fromList, toList)
 import Data.Vector as Vector (toList)
@@ -17,28 +18,31 @@ import Numeric
 instance ToJSON BSON.Value where
   toJSON = aesonifyValue
 
-instance ToJSON Document where
-  toJSON = Object . toAeson
+--instance ToJSON Document where
+--  toJSON = Object . toAeson
+
 
 bsonifyValue :: AESON.Value -> BSON.Value
 bsonifyValue (Object obj) = Doc $ toBson obj
 bsonifyValue (AESON.Array array) = BSON.Array . map bsonifyValue . Vector.toList $ array
 bsonifyValue (AESON.String str) = BSON.String str
-bsonifyValue (Number n) = case n of { I int   -> Int64 $ fromIntegral int
-                                    ; D float -> Float float }
+bsonifyValue (Number n) =
+  case Scientific.floatingOrInteger n of
+    Right int   -> Int64 int
+    Left  float -> Float float
 bsonifyValue (AESON.Bool b) = BSON.Bool b
 bsonifyValue (AESON.Null) = BSON.Null
 
 aesonifyValue :: BSON.Value -> AESON.Value
 aesonifyValue (Float f) = toJSON f
 aesonifyValue (BSON.String s) = toJSON s
-aesonifyValue (Doc doc) = toJSON doc
+aesonifyValue (Doc doc) = Object (toAeson doc)
 aesonifyValue (BSON.Array list) = toJSON list
-aesonifyValue (Bin (Binary binary)) = toJSON binary
-aesonifyValue (Fun (Function function)) = toJSON function
-aesonifyValue (Uuid (UUID uuid)) = toJSON uuid
-aesonifyValue (Md5 (MD5 md5)) = toJSON md5
-aesonifyValue (UserDef (UserDefined userdef)) = toJSON userdef
+aesonifyValue (Bin (Binary binary)) = toJSON (makeByteString64 binary)
+aesonifyValue (Fun (Function function)) = toJSON (makeByteString64 function)
+aesonifyValue (Uuid (UUID uuid)) = toJSON (makeByteString64 uuid)
+aesonifyValue (Md5 (MD5 md5)) = toJSON (makeByteString64 md5)
+aesonifyValue (UserDef (UserDefined userdef)) = toJSON (makeByteString64 userdef)
 aesonifyValue (ObjId (Oid w32 w64)) = toJSON $ showHex w32 (showHex w64 "")
 aesonifyValue (BSON.Bool bool) = toJSON bool
 aesonifyValue (UTC utc) = toJSON utc
@@ -47,7 +51,7 @@ aesonifyValue (RegEx (Regex pattern mods)) = toJSON $
                                            '/' : T.unpack pattern ++
                                            '/' : T.unpack mods
 aesonifyValue (JavaScr (Javascript env code)) = toJSON . Map.fromList $
-                                              [ (T.pack "environment", toJSON env)
+                                              [ (T.pack "environment", Object (toAeson env))
                                               , (T.pack "code", toJSON code)]
 aesonifyValue (Sym (Symbol sym)) = toJSON sym
 aesonifyValue (Int32 int32) = toJSON int32
