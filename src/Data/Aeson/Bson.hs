@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Data.Aeson.Bson (
@@ -18,18 +19,24 @@ import Numeric
 instance ToJSON BSON.Value where
   toJSON = aesonifyValue
 
---instance ToJSON Document where
---  toJSON = Object . toAeson
-
+-- Encoding and decoding numbers is tricky because Scientific (which
+-- is used by Aeson) is capable of representing many more types of
+-- numbers than Bson. Here, we encode the number as an Int64 if
+-- possible and otherwise encode it as a Double (which Bson calls
+-- Float). One consequence is that integers with many digits will be
+-- encoded as Doubles. After decoding, some trailing digits will be
+-- lost.
+bsonNumberFromScientific :: Scientific.Scientific -> BSON.Value
+bsonNumberFromScientific n =
+  case Scientific.toBoundedInteger n of
+    Just i  -> Int64 i
+    Nothing -> Float (Scientific.toRealFloat n)
 
 bsonifyValue :: AESON.Value -> BSON.Value
 bsonifyValue (Object obj) = Doc $ toBson obj
 bsonifyValue (AESON.Array array) = BSON.Array . map bsonifyValue . Vector.toList $ array
 bsonifyValue (AESON.String str) = BSON.String str
-bsonifyValue (Number n) =
-  case Scientific.floatingOrInteger n of
-    Right int   -> Int64 int
-    Left  float -> Float float
+bsonifyValue (Number n) = bsonNumberFromScientific n
 bsonifyValue (AESON.Bool b) = BSON.Bool b
 bsonifyValue (AESON.Null) = BSON.Null
 
